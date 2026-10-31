@@ -13,3 +13,7 @@
 *.aab
 *.keystore
 *.jks
+
+# Diseños y maquetas de uso interno
+pantallas_diseño/
+
