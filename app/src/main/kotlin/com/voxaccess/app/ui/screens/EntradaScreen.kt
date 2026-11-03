@@ -25,6 +25,7 @@ import androidx.compose.ui.unit.sp
 import com.voxaccess.app.ui.components.VoxHeader
 import com.voxaccess.app.ui.theme.*
 
+// Pantalla de entrada para capturar o dictar enlaces
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun EntradaScreen(

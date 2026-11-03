@@ -6,6 +6,7 @@ import android.os.VibrationEffect
 import android.os.Vibrator
 import android.os.VibratorManager
 
+// Gestor de retroalimentación háptica para botones y gestos
 class GestorHaptico(contexto: Context) {
 
     private val vibrador: Vibrator? = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {

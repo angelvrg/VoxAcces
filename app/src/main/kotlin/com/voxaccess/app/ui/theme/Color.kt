@@ -1,3 +1,4 @@
+// Definición de colores principales de la paleta accesible
 package com.voxaccess.app.ui.theme
 
 import androidx.compose.ui.graphics.Color

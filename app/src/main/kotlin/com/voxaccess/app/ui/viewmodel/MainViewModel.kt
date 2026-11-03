@@ -1,17 +1,23 @@
 package com.voxaccess.app.ui.viewmodel
 
 import android.app.Application
+import android.content.Intent
+import android.provider.Settings
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
 import com.voxaccess.app.VoxAccessApp
 import com.voxaccess.app.audio.ControladorTTS
 import com.voxaccess.app.audio.EstadoReproductor
+import com.voxaccess.app.audio.InformacionVoz
 import com.voxaccess.app.ui.components.VoxPantalla
 import com.voxaccess.core.model.ArticuloWeb
 import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.combine
+import kotlinx.coroutines.flow.map
+import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 
 class MainViewModel(aplicacion: Application) : AndroidViewModel(aplicacion) {
@@ -41,7 +47,30 @@ class MainViewModel(aplicacion: Application) : AndroidViewModel(aplicacion) {
     val velocidadInicial = preferencias.flujoVelocidadInicial
     val hapticoActivo = preferencias.flujoHapticoActivo
     val vozNaturalActiva = preferencias.flujoVozNaturalActiva
-    val vozSeleccionada = preferencias.flujoVozSeleccionada
+    val idVozSeleccionada = preferencias.flujoVozSeleccionada
+    val vozSeleccionada = idVozSeleccionada
+
+    val vocesDisponibles: StateFlow<List<InformacionVoz>> = controladorTTS.vocesInfoDisponibles
+
+    val cargandoVoces: StateFlow<Boolean> = controladorTTS.ttsInicializadoFlujo
+        .map { !it }
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), true)
+
+    val nombreVozMostrado: StateFlow<String> = combine(
+        preferencias.flujoVozSeleccionada,
+        controladorTTS.vocesInfoDisponibles,
+        controladorTTS.ttsInicializadoFlujo
+    ) { idVoz, _, inicializado ->
+        if (!inicializado) {
+            "Cargando voz del sistema…"
+        } else {
+            controladorTTS.resolverNombreAmigable(idVoz)
+        }
+    }.stateIn(
+        scope = viewModelScope,
+        started = SharingStarted.WhileSubscribed(5000),
+        initialValue = "Cargando voz del sistema…"
+    )
 
     init {
         // Recuperar el último artículo guardado si aún no hay uno cargado en el motor
@@ -67,7 +96,7 @@ class MainViewModel(aplicacion: Application) : AndroidViewModel(aplicacion) {
         }
 
         viewModelScope.launch {
-            combine(vozSeleccionada, vozNaturalActiva) { voz, natural ->
+            combine(idVozSeleccionada, vozNaturalActiva) { voz, natural ->
                 voz to natural
             }.collect { (voz, natural) ->
                 controladorTTS.configurarVozPreferida(voz, natural)
@@ -155,14 +184,29 @@ class MainViewModel(aplicacion: Application) : AndroidViewModel(aplicacion) {
     fun cambiarVozNaturalActiva(activa: Boolean) {
         viewModelScope.launch {
             preferencias.guardarVozNaturalActiva(activa)
-            controladorTTS.configurarVozPreferida(estadoReproductor.value.vozActualNombre, activa)
         }
     }
 
-    fun seleccionarVoz(nombreVoz: String) {
+    fun seleccionarVoz(idVoz: String) {
         viewModelScope.launch {
-            preferencias.guardarVozSeleccionada(nombreVoz)
-            controladorTTS.configurarVozPreferida(nombreVoz, true)
+            preferencias.guardarVozSeleccionada(idVoz)
+        }
+    }
+
+    fun abrirAjustesTTS() {
+        val contexto = getApplication<Application>()
+        val intencion = Intent("com.android.settings.TTS_SETTINGS").apply {
+            flags = Intent.FLAG_ACTIVITY_NEW_TASK
+        }
+        try {
+            contexto.startActivity(intencion)
+        } catch (_: Exception) {
+            try {
+                contexto.startActivity(Intent(Settings.ACTION_SETTINGS).apply {
+                    flags = Intent.FLAG_ACTIVITY_NEW_TASK
+                })
+            } catch (_: Exception) {
+            }
         }
     }
 }

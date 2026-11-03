@@ -54,11 +54,7 @@ import com.voxaccess.app.ui.theme.*
 import com.voxaccess.core.model.Oracion
 import kotlin.math.abs
 
-/**
- * Indica si un lector de pantalla (TalkBack) con exploración táctil está activo.
- * En ese caso TalkBack intercepta los toques y deslizamientos de un dedo, así que
- * los gestos propios se desactivan y se usan acciones de accesibilidad y botones.
- */
+// Comprueba si la exploración táctil de TalkBack está activa
 @Composable
 private fun recordarExploracionTactilActiva(): Boolean {
     val contexto = LocalContext.current
@@ -76,6 +72,7 @@ private fun recordarExploracionTactilActiva(): Boolean {
     return activa
 }
 
+// Pantalla del reproductor de audio con gestos y controles accesibles
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun ReproductorScreen(
@@ -165,8 +162,7 @@ fun ReproductorScreen(
             }
         }
 
-        // Área de lectura. Gestos solo si no hay lector de pantalla activo;
-        // con lector de pantalla se exponen como acciones de accesibilidad.
+        // Área de lectura con soporte para gestos y accesibilidad
         Box(
             modifier = Modifier
                 .fillMaxWidth()
@@ -308,7 +304,7 @@ fun ReproductorScreen(
             }
         }
 
-        // Controles con botones: alternativa a los gestos (lector de pantalla, Switch Access, etc.)
+        // Controles con botones accesibles alternativos a gestos
         Row(
             modifier = Modifier
                 .fillMaxWidth()
@@ -337,7 +333,7 @@ fun ReproductorScreen(
             }
         }
 
-        // Ayuda visual de gestos (oculta al lector: ya existen acciones y botones etiquetados)
+        // Indicaciones visuales de los gestos táctiles
         Column(
             modifier = Modifier
                 .fillMaxWidth()
@@ -350,7 +346,7 @@ fun ReproductorScreen(
         }
     }
 
-    // Modal con la lista completa de oraciones para saltar a una frase exacta (HU-07 / CP-15)
+    // Ventana modal con la lista de oraciones del artículo
     if (mostrarListaOraciones && oraciones.isNotEmpty()) {
         val estadoLista = rememberLazyListState(
             initialFirstVisibleItemIndex = estado.indiceOracionActual.coerceIn(0, oraciones.lastIndex)

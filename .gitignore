@@ -17,3 +17,8 @@
 # Diseños y maquetas de uso interno
 pantallas_diseño/
 
+
+# Salida de compilacion release (Android Studio)
+/app/release/
+*.dm
+output-metadata.json

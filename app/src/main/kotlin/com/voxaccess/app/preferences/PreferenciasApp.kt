@@ -11,6 +11,7 @@ import kotlinx.coroutines.flow.map
 
 private val Context.almacenPreferencias by preferencesDataStore(name = "voxaccess_prefs")
 
+// Gestión de preferencias del usuario con DataStore
 class PreferenciasApp(private val contexto: Context) {
 
     companion object {
@@ -33,7 +34,12 @@ class PreferenciasApp(private val contexto: Context) {
     }
 
     val flujoVozSeleccionada: Flow<String> = contexto.almacenPreferencias.data.map { preferencias ->
-        preferencias[CLAVE_NOMBRE_VOZ] ?: "Lucía · Español"
+        val voz = preferencias[CLAVE_NOMBRE_VOZ]
+        if (voz == null || voz.contains("Lucía", ignoreCase = true)) {
+            ""
+        } else {
+            voz
+        }
     }
 
     suspend fun guardarVelocidad(velocidad: Float) {
@@ -56,7 +62,11 @@ class PreferenciasApp(private val contexto: Context) {
 
     suspend fun guardarVozSeleccionada(nombreVoz: String) {
         contexto.almacenPreferencias.edit { preferencias ->
-            preferencias[CLAVE_NOMBRE_VOZ] = nombreVoz
+            if (nombreVoz.isBlank() || nombreVoz.contains("Lucía", ignoreCase = true)) {
+                preferencias.remove(CLAVE_NOMBRE_VOZ)
+            } else {
+                preferencias[CLAVE_NOMBRE_VOZ] = nombreVoz
+            }
         }
     }
 }

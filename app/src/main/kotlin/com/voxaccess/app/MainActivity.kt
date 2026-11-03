@@ -54,12 +54,14 @@ class MainActivity : ComponentActivity() {
                 val velocidadInicial by modeloVista.velocidadInicial.collectAsState(initial = 1.5f)
                 val hapticoActivo by modeloVista.hapticoActivo.collectAsState(initial = true)
                 val vozNaturalActiva by modeloVista.vozNaturalActiva.collectAsState(initial = true)
-                val vozSeleccionada by modeloVista.vozSeleccionada.collectAsState(initial = "Lucía · Español")
+                val vozSeleccionada by modeloVista.idVozSeleccionada.collectAsState(initial = "")
+                val nombreVozMostrado by modeloVista.nombreVozMostrado.collectAsState()
+                val vocesDisponibles by modeloVista.vocesDisponibles.collectAsState()
+                val cargandoVoces by modeloVista.cargandoVoces.collectAsState()
 
                 var permisoNotificacionSolicitado by rememberSaveable { mutableStateOf(false) }
 
-                // Lanzador para el permiso de notificaciones en Android 13+ (API 33+)
-                // Si el usuario lo rechaza, la reproducción continúa sin fallar.
+                // Permiso de notificaciones para Android 13+
                 val lanzadorPermisoNotificacion = rememberLauncherForActivityResult(
                     contract = ActivityResultContracts.RequestPermission()
                 ) { _ -> }
@@ -176,8 +178,10 @@ class MainActivity : ComponentActivity() {
                                 velocidadInicial = velocidadInicial,
                                 hapticoActivo = hapticoActivo,
                                 vozNaturalActiva = vozNaturalActiva,
-                                nombreVozSeleccionada = vozSeleccionada,
-                                vocesDisponibles = modeloVista.controladorTTS.obtenerVocesDisponibles(),
+                                nombreVozSeleccionada = nombreVozMostrado,
+                                idVozSeleccionada = vozSeleccionada,
+                                vocesDisponibles = vocesDisponibles,
+                                cargandoVoces = cargandoVoces,
                                 alCambiarVelocidadInicial = { nuevaVelocidad ->
                                     modeloVista.cambiarVelocidadInicial(nuevaVelocidad)
                                 },
@@ -189,6 +193,9 @@ class MainActivity : ComponentActivity() {
                                 },
                                 alSeleccionarVoz = { voz ->
                                     modeloVista.seleccionarVoz(voz)
+                                },
+                                alAbrirAjustesTTS = {
+                                    modeloVista.abrirAjustesTTS()
                                 },
                                 alVibrarToque = { modeloVista.gestorHaptico.vibrarToqueLigero() },
                                 modificador = Modifier

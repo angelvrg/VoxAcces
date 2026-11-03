@@ -1,0 +1,5 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- Color de fondo para el icono del launcher -->
+    <color name="ic_launcher_background">#000000</color>
+</resources>

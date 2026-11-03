@@ -12,11 +12,7 @@ import androidx.media3.common.util.UnstableApi
 import com.google.common.util.concurrent.Futures
 import com.google.common.util.concurrent.ListenableFuture
 
-/**
- * Adaptador de Media3 (SimpleBasePlayer) que expone el estado y controles
- * de [ControladorTTS] a la sesión multimedia del sistema (notificación,
- * pantalla de bloqueo, auriculares y Bluetooth).
- */
+// Adaptador Media3 que expone el reproductor a la sesión multimedia del sistema
 @UnstableApi
 class TtsMediaPlayer(
     private val controladorTTS: ControladorTTS

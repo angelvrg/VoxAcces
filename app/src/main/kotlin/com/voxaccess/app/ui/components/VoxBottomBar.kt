@@ -24,12 +24,14 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.voxaccess.app.ui.theme.*
 
+// Pestañas principales de navegación
 enum class VoxPantalla(val titulo: String, val icono: ImageVector) {
     ENTRADA("ENTRADA", Icons.Default.Mic),
     REPRODUCTOR("REPRODUCTOR", Icons.Default.PlayArrow),
     AJUSTES("AJUSTES", Icons.Default.Tune)
 }
 
+// Barra de navegación inferior accesible
 @Composable
 fun VoxBottomBar(
     pantallaActual: VoxPantalla,

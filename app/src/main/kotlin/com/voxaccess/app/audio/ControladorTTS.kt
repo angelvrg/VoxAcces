@@ -51,6 +51,15 @@ class ControladorTTS(
     private val _estado = MutableStateFlow(EstadoReproductor())
     val estado: StateFlow<EstadoReproductor> = _estado.asStateFlow()
 
+    private val _ttsInicializado = MutableStateFlow(false)
+    val ttsInicializadoFlujo: StateFlow<Boolean> = _ttsInicializado.asStateFlow()
+
+    private val _vocesDisponibles = MutableStateFlow<List<Voice>>(emptyList())
+    val vocesDisponibles: StateFlow<List<Voice>> = _vocesDisponibles.asStateFlow()
+
+    private val _vocesInfoDisponibles = MutableStateFlow<List<InformacionVoz>>(emptyList())
+    val vocesInfoDisponibles: StateFlow<List<InformacionVoz>> = _vocesInfoDisponibles.asStateFlow()
+
     private val receptorAuriculares = object : BroadcastReceiver() {
         override fun onReceive(contextoReceptor: Context?, intencion: Intent?) {
             if (intencion?.action == AudioManager.ACTION_AUDIO_BECOMING_NOISY) {
@@ -79,14 +88,15 @@ class ControladorTTS(
     override fun onInit(estadoInicializacion: Int) {
         if (estadoInicializacion == TextToSpeech.SUCCESS) {
             ttsInicializado = true
+            _ttsInicializado.value = true
+
             motorTts?.setOnUtteranceProgressListener(object : UtteranceProgressListener() {
                 override fun onStart(identificadorLocucion: String?) {
                     actualizarEstado(reproduciendo = true, pausado = false)
                 }
 
                 override fun onDone(identificadorLocucion: String?) {
-                    // Verificar que el identificador corresponda a la oración activa actual
-                    // para evitar saltos por cancelaciones previas
+                    // Validar identificador para evitar saltos por cancelaciones previas
                     if (identificadorLocucion != "oracion_$indiceActual") return
 
                     if (_estado.value.reproduciendo && !_estado.value.pausado) {
@@ -105,6 +115,8 @@ class ControladorTTS(
                     actualizarEstado(reproduciendo = false, pausado = false)
                 }
             })
+
+            actualizarVocesDisponibles()
             configurarIdiomaYVoz(idiomaActual)
 
             if (reproduccionPendienteAlIniciar && oraciones.isNotEmpty()) {
@@ -114,8 +126,94 @@ class ControladorTTS(
         }
     }
 
+    fun obtenerIdiomaSistema(): Locale {
+        return if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.N) {
+            contexto.resources.configuration.locales.get(0) ?: Locale.getDefault()
+        } else {
+            @Suppress("DEPRECATION")
+            contexto.resources.configuration.locale ?: Locale.getDefault()
+        }
+    }
+
+    fun actualizarVocesDisponibles() {
+        if (!ttsInicializado) return
+        try {
+            val idiomaSistema = obtenerIdiomaSistema()
+            val todasLasVoces = motorTts?.voices?.filter { voz ->
+                voz.locale.language.equals(idiomaSistema.language, ignoreCase = true)
+            } ?: emptyList()
+
+            val vocesLocales = todasLasVoces.filter { !it.isNetworkConnectionRequired }
+            val vocesFiltradas = if (vocesLocales.isNotEmpty()) vocesLocales else todasLasVoces
+            _vocesDisponibles.value = vocesFiltradas
+
+            val vozPredeterminadaSistema = motorTts?.defaultVoice
+
+            val resultado = mutableListOf<InformacionVoz>()
+            val porRegion = vocesFiltradas.groupBy { it.locale.country }
+
+            porRegion.forEach { (_, listaDeRegion) ->
+                val listaOrdenada = listaDeRegion.sortedBy { it.name }
+                listaOrdenada.forEachIndexed { indice, voz ->
+                    val nombrePais = voz.locale.getDisplayCountry(idiomaSistema)
+                        .ifBlank { voz.locale.displayCountry }
+                    val nombreIdioma = voz.locale.getDisplayLanguage(idiomaSistema)
+                        .ifBlank { voz.locale.displayLanguage }
+                        .replaceFirstChar { if (it.isLowerCase()) it.titlecase(idiomaSistema) else it.toString() }
+
+                    val idiomaPais = if (nombrePais.isNotBlank()) {
+                        "$nombreIdioma ($nombrePais)"
+                    } else {
+                        nombreIdioma
+                    }
+
+                    val nombreAmigable = "$idiomaPais · Voz ${indice + 1}"
+                    val esNatural = voz.quality >= Voice.QUALITY_HIGH
+                    val esPredeterminada = (voz.name == vozPredeterminadaSistema?.name)
+
+                    resultado.add(
+                        InformacionVoz(
+                            id = voz.name,
+                            nombreAmigable = nombreAmigable,
+                            idiomaPais = idiomaPais,
+                            esNatural = esNatural,
+                            esPredeterminada = esPredeterminada
+                        )
+                    )
+                }
+            }
+
+            _vocesInfoDisponibles.value = resultado
+        } catch (_: Exception) {
+            _vocesDisponibles.value = emptyList()
+            _vocesInfoDisponibles.value = emptyList()
+        }
+    }
+
+    fun resolverNombreAmigable(idVoz: String?): String {
+        if (!ttsInicializado) {
+            return "Cargando voz del sistema…"
+        }
+
+        val lista = _vocesInfoDisponibles.value
+
+        if (!idVoz.isNullOrBlank() && !idVoz.contains("Lucía", ignoreCase = true)) {
+            val encontrada = lista.firstOrNull { it.id.equals(idVoz, ignoreCase = true) }
+            if (encontrada != null) {
+                return encontrada.nombreAmigable
+            }
+        }
+
+        val vozPredeterminada = lista.firstOrNull { it.esPredeterminada } ?: lista.firstOrNull()
+        return if (vozPredeterminada != null) {
+            vozPredeterminada.nombreAmigable
+        } else {
+            "Predeterminada del sistema"
+        }
+    }
+
     fun cargarOraciones(lista: List<Oracion>, idioma: String, velocidadInicial: Float = 1.5f) {
-        // Detener cualquier lectura previa para que no avance sobre la lista nueva
+        // Detener cualquier lectura previa
         reproduccionPendienteAlIniciar = false
         motorTts?.stop()
         this.oraciones = lista
@@ -223,22 +321,23 @@ class ControladorTTS(
     }
 
     fun configurarVozPreferida(nombreVoz: String?, usarNatural: Boolean) {
-        this.nombreVozPreferida = nombreVoz
+        val limpia = nombreVoz?.takeIf { it.isNotBlank() && !it.contains("Lucía", ignoreCase = true) }
+        val idiomaSistema = obtenerIdiomaSistema().language
+
+        this.nombreVozPreferida = if (limpia != null) {
+            val vozValida = motorTts?.voices?.firstOrNull {
+                it.name.equals(limpia, ignoreCase = true) &&
+                        it.locale.language.equals(idiomaSistema, ignoreCase = true)
+            }
+            vozValida?.name ?: if (motorTts == null) limpia else null
+        } else null
+
         this.usarVozNatural = usarNatural
         configurarIdiomaYVoz(idiomaActual)
     }
 
     fun obtenerVocesDisponibles(): List<Voice> {
-        if (!ttsInicializado) return emptyList()
-        return try {
-            motorTts?.voices?.filter { voz ->
-                !voz.isNetworkConnectionRequired &&
-                        (voz.locale.language.equals("es", ignoreCase = true) ||
-                                voz.locale.language.equals("en", ignoreCase = true))
-            }?.sortedBy { it.name } ?: emptyList()
-        } catch (_: Exception) {
-            emptyList()
-        }
+        return _vocesDisponibles.value
     }
 
     private fun reproducirOracionEnIndice(indice: Int) {
@@ -265,24 +364,42 @@ class ControladorTTS(
     private fun configurarIdiomaYVoz(codigoIdioma: String) {
         if (!ttsInicializado) return
 
+        val idiomaSistema = obtenerIdiomaSistema()
         val configuracionRegional = if (codigoIdioma.startsWith("en", ignoreCase = true)) {
             Locale.ENGLISH
+        } else if (codigoIdioma.startsWith("es", ignoreCase = true)) {
+            if (idiomaSistema.language.equals("es", ignoreCase = true)) {
+                idiomaSistema
+            } else {
+                Locale("es", "MX")
+            }
         } else {
-            Locale("es", "MX")
+            Locale(codigoIdioma)
         }
 
         motorTts?.language = configuracionRegional
 
         try {
             val voces = motorTts?.voices ?: return
+
+            // 1. Voz preferida elegida por el usuario si coincide con el idioma del contenido
             val vozSeleccionada = if (!nombreVozPreferida.isNullOrBlank()) {
                 voces.firstOrNull {
                     it.locale.language.equals(configuracionRegional.language, ignoreCase = true) &&
-                            it.name.contains(nombreVozPreferida!!, ignoreCase = true)
+                            it.name.equals(nombreVozPreferida, ignoreCase = true)
                 }
             } else null
 
-            val vozFinal = vozSeleccionada ?: voces.firstOrNull { voz ->
+            // 2. Si no hay voz preferida o no coincide el idioma, y el texto es del idioma del sistema:
+            // intentar usar la voz predeterminada del motor en el teléfono
+            val vozPredeterminadaSistema = if (configuracionRegional.language.equals(idiomaSistema.language, ignoreCase = true)) {
+                motorTts?.defaultVoice?.takeIf {
+                    it.locale.language.equals(configuracionRegional.language, ignoreCase = true)
+                }
+            } else null
+
+            // 3. Fallback a voz natural (calidad alta) o primera voz disponible del idioma
+            val vozFinal = vozSeleccionada ?: vozPredeterminadaSistema ?: voces.firstOrNull { voz ->
                 voz.locale.language.equals(configuracionRegional.language, ignoreCase = true) &&
                         (!usarVozNatural || voz.quality >= Voice.QUALITY_HIGH)
             } ?: voces.firstOrNull { voz ->
@@ -291,7 +408,8 @@ class ControladorTTS(
 
             if (vozFinal != null) {
                 motorTts?.voice = vozFinal
-                actualizarEstado(vozActualNombre = vozFinal.name)
+                val nombreAmigable = resolverNombreAmigable(vozFinal.name)
+                actualizarEstado(vozActualNombre = nombreAmigable)
             }
         } catch (_: Exception) {
             // Motores TTS sin soporte de voces

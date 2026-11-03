@@ -8,6 +8,7 @@ import com.voxaccess.app.util.GestorHaptico
 import com.voxaccess.core.repository.RepositorioArticulos
 import com.voxaccess.core.storage.AlmacenamientoArticulos
 
+// Inicialización de dependencias y servicios de la aplicación
 class VoxAccessApp : Application() {
 
     lateinit var almacenamiento: AlmacenamientoArticulos

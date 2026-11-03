@@ -52,8 +52,7 @@ class ServicioLectura : MediaSessionService() {
                 val intencion = Intent(contexto, ServicioLectura::class.java)
                 ContextCompat.startForegroundService(contexto, intencion)
             } catch (_: Exception) {
-                // Si el sistema restringe iniciar el servicio en segundo plano,
-                // la lectura por voz continúa de todos modos.
+                // Si el sistema restringe el servicio en segundo plano, la lectura continúa
             }
         }
     }
@@ -104,8 +103,7 @@ class ServicioLectura : MediaSessionService() {
     }
 
     override fun onTaskRemoved(intencionRaiz: Intent?) {
-        // Mantener la reproducción activa en segundo plano hasta que el usuario
-        // pause o detenga desde la notificación o auriculares, o termine el artículo.
+        // Mantener la reproducción en segundo plano si aún está activa
         val aplicacion = application as VoxAccessApp
         if (!aplicacion.controladorTTS.estado.value.reproduciendo) {
             stopSelf()

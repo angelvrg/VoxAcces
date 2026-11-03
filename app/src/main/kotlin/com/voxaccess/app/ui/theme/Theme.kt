@@ -1,3 +1,4 @@
+// Tema visual oscuro de alto contraste para la aplicación
 package com.voxaccess.app.ui.theme
 
 import androidx.compose.material3.MaterialTheme
