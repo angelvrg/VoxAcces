@@ -6,7 +6,12 @@ VoxAccess complementa a los lectores de pantalla como **TalkBack**. Pegás un en
 
 Todo el procesamiento ocurre **en tu dispositivo**. No se envían datos a servidores externos ni se requiere cuenta.
 
----
+## Descargar
+
+**Versión actual:** [Descargar APK](https://github.com/angelvrg/VoxAcces/releases/download/VoxAccess/app-release.apk)
+
+> Requiere Android 8.0 o superior.  
+> Si Android muestra una advertencia de “origen desconocido”, activá la opción de instalar apps de fuentes externas solo para este archivo.
 
 ## Características principales
 
@@ -16,8 +21,6 @@ Todo el procesamiento ocurre **en tu dispositivo**. No se envían datos a servid
 - **Controles de reproducción** — Pausar, reanudar y ajustar velocidad entre 0.75× y 2.5×. Compatible con auriculares, notificación y pantalla de bloqueo (Media3).
 - **Interfaz accesible** — Diseñada para TalkBack (WCAG 2.2 AA): botones grandes, alto contraste, anuncios de estado y acciones personalizadas.
 - **Privacidad por diseño** — Descarga solo por HTTPS, respeta `robots.txt` y procesa todo localmente.
-
----
 
 ## Cómo usarla
 
@@ -31,15 +34,11 @@ Todo el procesamiento ocurre **en tu dispositivo**. No se envían datos a servid
 
 En **Ajustes** podés elegir la voz del sistema y la velocidad predeterminada.
 
----
-
 ## Requisitos
 
 - Android 8.0 (API 26) o superior
 - Motor Text-to-Speech del sistema (ya incluido en Android)
 - Conexión a internet para descargar el artículo (el audio se genera en el dispositivo)
-
----
 
 ## Compilar desde el código fuente
 

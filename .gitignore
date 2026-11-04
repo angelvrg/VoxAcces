@@ -14,11 +14,11 @@
 *.keystore
 *.jks
 
-# Diseños y maquetas de uso interno
+
 pantallas_diseño/
+docs/
 
 
-# Salida de compilacion release (Android Studio)
 /app/release/
 *.dm
 output-metadata.json
